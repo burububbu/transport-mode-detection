@@ -2,18 +2,21 @@ import pandas as pd
 # TODO
 class TDDataset:
     """Transport detection dataset with sensor data"""
+    # variables 
     def __init__(self):
+        # without target
         self.data = None
         self.target = None
     
     def load_dataset_from_csv(self, csv_path, excluded_sensors=[]):
         """Load dataset from cvs file"""
-        to_exclude = []
-        
         if excluded_sensors:
             to_exclude = self._analyze_feat(csv_path, excluded_sensors)
-        
-        self.data = pd.read_csv(csv_path, usecols = lambda n: n not in to_exclude).iloc[:, 5:-2]
+            self.data = pd.read_csv(csv_path, usecols = lambda n: n not in to_exclude)
+        else:
+            self.data = pd.read_csv(csv_path)
+
+        self.data = self.data.iloc[:, 5:-2]
         
         self.target = pd.read_csv(csv_path, sep=',', usecols = ['target'])
         
@@ -21,10 +24,6 @@ class TDDataset:
         """Get entire dataset or, if specified, return specific columns"""
         # TODO
         return self.data
-
-    def get_target(self):
-        """ Get target data"""
-        return self.target
     
     def _analyze_feat(self, csv_path, excluded_sensors):
         """ create list of names to exclude"""
