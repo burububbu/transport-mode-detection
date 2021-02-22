@@ -1,33 +1,25 @@
 import pandas as pd
 import re
-# TODO
 class TDDataset:
     """
     Transport detection dataset with sensor data.
     Fields:
-        - feat
+        - features
         - data
-        - target
-        -                
     """
     def __init__(self, csv_path, excluded_sensors=[]):
-        feat_list = self._analyze_feat(csv_path, excluded_sensors)
-        self.data, self.target = self._load_dataset_from_csv(csv_path, feat_list)
-        
-    def _load_dataset_from_csv(self, csv_path, feat_list):
-        """Load dataset from cvs file"""
-        data = pd.read_csv(csv_path, usecols = feat_list)
-        target = pd.read_csv(csv_path, sep=',', usecols = ['target'])
-        
-        return data, target
-    
+        self._feat, feat_list = self._analyze_feat(csv_path, excluded_sensors)
+        self.data = pd.read_csv(csv_path, usecols = feat_list)
+
     def get_data_feat(self, sensors = []):
         """Get entire dataset or, if specified, return specific columns"""
         indexes = []
         
-        for s in sensors:
-            ind = self._feat.index(s) * 4
-            indexes.extend(list(range(ind, ind + 4)))
+        if sensors:
+            for s in sensors:
+                ind = self._feat.index(s) * 4
+                indexes.extend(list(range(ind, ind + 4)))
+            indexes.append(self.data.columns.get_loc('target'))
         
         return self.data.iloc[:, indexes]
     
@@ -41,13 +33,15 @@ class TDDataset:
         
         feat_list= [f for f in feat_names.values[0] if f not in
                     [t for s in excluded_sensors for t in feat_names.values[0] if s in t]]
-        
+           
         # lista solo con i nomi delle feat
-        self._feat = [get_cleaned_name(feat_list[i]) for i in range(0, len(feat_list), 4)]
+        clean_name = lambda n : re.search('(.+?)[#]', n).group(1).replace('android.sensor.', '')
         
-        return feat_list
+        feat_cleaned = [clean_name(feat_list[i]) for i in range(0, len(feat_list), 4)]
         
-def get_cleaned_name(name):
-    return re.search('(.+?)[#]', name).group(1).replace('android.sensor.', '')
+        feat_list.append('target')
+        
+        return feat_cleaned, feat_list
+
     
     
