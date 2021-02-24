@@ -1,8 +1,11 @@
 # -*- coding: utf-8 -*-
+
 from tddataset import TDDataset
+import preprocessing as pr
 
 df = None
 dt = None
+d = None
 path = '../dataset/dataset_5secondWindow.csv'
 excluded_sensor = ['light', 'pressure', 'magnetic_field','gravity','proximity']
 # and magnetic_field_uncalibrated
@@ -10,7 +13,6 @@ excluded_sensor = ['light', 'pressure', 'magnetic_field','gravity','proximity']
 #features
 # 	accelerometer,
 # 	game_rotation_vector,
-# 	gravity,
 # 	gyroscope,
 # 	gyroscope_uncalibrated,
 # 	linear_acceleration,
@@ -19,7 +21,6 @@ excluded_sensor = ['light', 'pressure', 'magnetic_field','gravity','proximity']
 # 	step_counter,
 # 	sound,
 # 	speed,
-
     
     # every sensor generates 4 features: mean, min, max, std
     # 64/4 = 16 sensors
@@ -34,26 +35,31 @@ excluded_sensor = ['light', 'pressure', 'magnetic_field','gravity','proximity']
 
 
 def main():
-    global df
-    global dt
+    global dt, df, d
     # dataset instance
     dt = TDDataset(path, excluded_sensor)
-    random_forest()
+    d = dt.data
+    # TODO fare il filling dei NaN con un valore
     
-    
-def random_forest():
-    global df
-    global dt
-    df = dt.get_data_feat(['accelerometer', 'gyroscope'])
+    # 1. check sensor with more information -> create logistic regression for every sensor and check accuracy
+    #check_sensor_importance(dt)
     RF_preprocessing()
 
+    
 
+def check_sensor_importance(dt):
+    # use logistic regression
+    for s in dt.feat:
+        dt.get_data_feat([s])
+          
 # serie of functions to handle different types of prprocessing based on the type of model
 def RF_preprocessing():
-    global df
-    df.dropna(inplace=True)
-    print(df.head().describe())
-    
+    global d
+    pr.check_balanced_dt(d)
+    # df.dropna(inplace=True)
+    # print(df.head().describe())
+
+
 if __name__ == '__main__':
     main()
     
