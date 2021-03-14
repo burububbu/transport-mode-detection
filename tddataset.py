@@ -34,7 +34,9 @@ class TDDataset:
         self.test_dt = (x_te, y_te)    
     
     def get_train_test_feat(self, sensors = []):
-        """Get train data and test data with specific column"""
+        """Get train data and test data with specific columns
+           Return: tuple (train_x,  test_x, train_y, test_y)
+        """
         indexes = []
         
         if sensors:
@@ -42,7 +44,8 @@ class TDDataset:
                 ind = self._get_i(s)
                 indexes.extend(list(range(ind, ind + 4)))
         
-        return (self.train_dt[0].iloc[:, indexes], self.test_dt[0].iloc[:, indexes] )
+        return (self.train_dt[0].iloc[:, indexes], self.test_dt[0].iloc[:, indexes],
+                self.train_dt[1], self.test_dt[1] )
     
     def _get_i(self, name):
         ''' Get index of first sensor feature'''
