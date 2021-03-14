@@ -1,47 +1,58 @@
-import pandas as pd
-import utils 
+import pandas as pd;
+import utils;
+import matplotlib.pyplot as plt;
+import numpy as np
 
 class TDDataset:
     """
     Transport detection dataset with sensor data.
     Fields:
-        - features
+        - feat
         - data
+        - train_dt // preprocessed  by main
+        - test_dt // preprocessed by main
     """
-    def __init__(self, csv_path, excluded_sensors=[]):
-        self.feat, feat_list = self._analyze_feat(csv_path, excluded_sensors)
-        self.data = pd.read_csv(csv_path, usecols = feat_list)
-
-    def get_data_feat(self, sensors = []):
-        """Get entire dataset or, if specified, return specific columns"""
+    def __init__(self, path, excluded_sensors=[]):
+        # load data, after calc features to exclude
+        data = pd.read_csv(path).iloc[:, 5:-1]
+        
+        def to_exclude(w):
+            for f in excluded_sensors:
+                if f in w:
+                    return True
+        
+        self.data = data[[f for f in data.columns.values if not to_exclude(f)]]
+        
+        # add feat list (useful to retrieve then indexes)
+        col_names = self.data.columns.values
+        
+        self.feat = [utils.clean_name(col_names[i]) for i in range(0, len(col_names)-1, 4)]
+      
+    def set_train_test(self, x_tr, y_tr, x_te, y_te):
+        """Set train and test data"""
+        self.train_dt = (x_tr, y_tr)
+        self.test_dt = (x_te, y_te)    
+    
+    def get_train_test_feat(self, sensors = []):
+        """Get train data and test data with specific column"""
         indexes = []
         
         if sensors:
             for s in sensors:
-                ind = self.feat.index(s) * 4
+                ind = self._get_i(s)
                 indexes.extend(list(range(ind, ind + 4)))
-            indexes.append(self.data.columns.get_loc('target'))
         
-        return self.data.iloc[:, indexes]
+        return (self.train_dt[0].iloc[:, indexes], self.test_dt[0].iloc[:, indexes] )
     
-    def _analyze_feat(self, csv_path, excluded_sensors):
-        """create list of names to exclude"""
-        feat_names = pd.read_csv(csv_path, header=None, nrows=1).iloc[:, 5:-2]
-        # for t in temp.values[0]:
-        #     for s in excluded_sensors:
-        #         if s in t:
-        #             to_exclude.append(t)
-        
-        feat_list= [f for f in feat_names.values[0] if f not in
-                    [t for s in excluded_sensors for t in feat_names.values[0] if s in t]]
-           
-        feat_cleaned = [utils.clean_name(feat_list[i]) for i in range(0, len(feat_list), 4)]
-        
-        feat_list.append('target')
-        
-        return feat_cleaned, feat_list
-
-        
-
+    def _get_i(self, name):
+        ''' Get index of first sensor feature'''
+        return self.feat.index(name) * 4
+    
+    def remove_sensor_feat(self, name):
+        if name in self.feat:
+            ind = self._get_i(name)
+            self.data.drop(self.data.columns[list(range(ind, ind+4))], axis=1, inplace=True)
+            self.feat.remove(name)
+    
     
     
