@@ -1,8 +1,27 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
+def standardization(x_train, x_test):
+    mean = np.mean(x_train, axis=0)
+    std = np.std(x_train, axis=0)
+
+    x_train_st = (x_train - mean) / std
+    x_test_st = (x_test - mean) / std
+
+    return (x_train_st, x_test_st)
+
+def min_max_scaling(x_train, x_test):
+    max = np.max(x_train, axis=0)
+    min = np.min(x_train, axis=0)
+
+    x_train_st = (x_train - min) / (max - min)
+    x_test_st = (x_test - min) / (max - min)
+
+    return (x_train_st, x_test_st)
+
+
 # Check how many nan values there are for each feature
-def checkSampleNotNull(data, feat,  plot=False):
+def check_nan_sample(data, feat,  plot=False):
     tot_sample = data.shape[0]
     nan_sample = tot_sample - data.iloc[:, :-1].count()
     
@@ -25,3 +44,7 @@ def checkSampleNotNull(data, feat,  plot=False):
         plt.legend(['mean', 'min', 'max', 'std'])
        
     return nan_sample
+
+def fill_NaN(data): # input x_train
+    return data.fillna(data.median())
+
