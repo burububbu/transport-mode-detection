@@ -10,7 +10,7 @@ class TDDataset:
         - feat
         - data
         - train_dt // preprocessed  by main
-        - test_dt // preprocessed by main
+        - test_dt // preprocessed by main  
     """
     def __init__(self, path, excluded_sensors=[]):
         # load data, after calc features to exclude
@@ -32,7 +32,7 @@ class TDDataset:
         """Set train and test data"""
         self.train_dt = (x_tr, y_tr)
         self.test_dt = (x_te, y_te)    
-    
+
     def get_train_test_feat(self, sensors = []):
         """Get train data and test data with specific columns
            Return: tuple (train_x,  test_x, train_y, test_y)
