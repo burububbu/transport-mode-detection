@@ -1,13 +1,39 @@
+
+from sklearn import decomposition
 import matplotlib.pyplot as plt
 import numpy as np
+
+
+def do_pca(x_tr, x_te, sensors): 
+    pca = decomposition.PCA()
+    pca.fit(x_tr)
+    
+    expl = pca.explained_variance_ratio_
+    
+    acc = 0
+    i = 0
+    for e in expl:
+        acc = acc + e
+        if acc >= 0.95:
+            i = list(expl).index(e)  
+            pca = decomposition.PCA(n_components = i)
+            break
+    print(i)
+    pca.fit(x_tr)
+    
+    print(pca.explained_variance_ratio_)
+    
+    x_tr = pca.transform(x_tr)
+    x_te = pca.transform(x_te)
+    
+    return (x_tr, x_te)
+    
 
 def standardization(x_train, x_test):
     mean = np.mean(x_train, axis=0)
     std = np.std(x_train, axis=0)
-
     x_train_st = (x_train - mean) / std
     x_test_st = (x_test - mean) / std
-
     return (x_train_st, x_test_st)
 
 def min_max_scaling(x_train, x_test):
