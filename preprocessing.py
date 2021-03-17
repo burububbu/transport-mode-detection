@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 
-def do_pca(x_tr, x_te, sensors): 
+def pca(x_tr, x_te): 
     pca = decomposition.PCA()
     pca.fit(x_tr)
     
