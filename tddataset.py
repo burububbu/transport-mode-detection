@@ -2,12 +2,15 @@ import pandas as pd;
 import utils;
 import matplotlib.pyplot as plt;
 import numpy as np
+import preprocessing as pre
+from sklearn.model_selection import train_test_split
 
 class TDDataset:
     """
     Transport detection dataset with sensor data.
     Fields:
         - feat
+        - _subfeat = ['mean', 'min, 'max', 'std'] 
         - data
         - train_dt // preprocessed  by main
         - test_dt // preprocessed by main  
@@ -27,7 +30,34 @@ class TDDataset:
         col_names = self.data.columns.values
         
         self.feat = [utils.clean_name(col_names[i]) for i in range(0, len(col_names)-1, 4)]
+        self._subfeat = ['mean', 'min', 'max', 'std']
       
+    def split_train_set(self, test_size = 0.2, prep = False):
+        ''' if prep = True: fill NaN with median, drop duplicated rows, check if dataset is balanced'''
+        x_tr, x_te, y_tr, y_te = train_test_split(self.data.iloc[:, :-1], self.data['target'],  test_size=test_size, random_state=42)
+        
+        if prep: 
+            print('DT ANALYSIS...')
+            # fill NaN
+            x_tr, x_te = pre.fill_NaN(x_tr, x_te)
+            
+            # drop duplicated rows
+            shape_before = x_tr.shape[0]
+            x_tr.insert(x_tr.shape[1],'target', y_tr)
+            x_tr.drop_duplicates(keep='first', inplace=True)
+            print('Number of duplicated rows: {}\n'.format(shape_before - x_tr.shape[0]))
+            
+            y_tr = x_tr['target']
+            x_tr = x_tr.iloc[:, :-1]
+            
+            # check balanced training dataset
+            uniq = np.unique(y_tr, return_counts=True) # è bilanciato
+            print('\rIs the dataset balanced?\r')
+            for i in range(0, len(uniq[0])):
+                print("\t{}: {} samples".format(uniq[0][i], uniq[1][i]))
+
+        self.set_train_test(x_tr, y_tr, x_te, y_te)
+
     def set_train_test(self, x_tr, y_tr, x_te, y_te):
         """Set train and test data"""
         self.train_dt = (x_tr, y_tr)
@@ -47,15 +77,17 @@ class TDDataset:
         return (self.train_dt[0].iloc[:, indexes], self.test_dt[0].iloc[:, indexes],
                 self.train_dt[1], self.test_dt[1] )
     
-    def _get_i(self, name):
-        ''' Get index of first sensor feature'''
-        return self.feat.index(name) * 4
-    
     def remove_sensor_feat(self, name):
         if name in self.feat:
             ind = self._get_i(name)
             self.data.drop(self.data.columns[list(range(ind, ind+4))], axis=1, inplace=True)
             self.feat.remove(name)
+
+    def _get_i(self, name):
+        ''' Get index of first sensor feature'''
+        return self.feat.index(name) * 4
+
+    
     
     
     
