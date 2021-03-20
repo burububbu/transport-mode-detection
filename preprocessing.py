@@ -1,31 +1,6 @@
 
-from sklearn import decomposition
 import matplotlib.pyplot as plt
 import numpy as np
-
-# def pca(x_tr, x_te): 
-#     pca = decomposition.PCA()
-#     pca.fit(x_tr)
-    
-#     expl = pca.explained_variance_ratio_
-    
-#     acc = 0
-#     i = 0
-#     for e in expl:
-#         acc = acc + e
-#         if acc >= 0.95:
-#             i = list(expl).index(e)  
-#             pca = decomposition.PCA(n_components = i)
-#             break
-#     pca.fit(x_tr)
-    
-#     print(pca.explained_variance_ratio_)
-    
-#     x_tr = pca.transform(x_tr)
-#     x_te = pca.transform(x_te)
-    
-#     return (x_tr, x_te)
-    
 
 def standardization(x_train, x_test):
     mean = np.mean(x_train, axis=0)

@@ -40,7 +40,7 @@ def knn_(x_tr, x_te, y_tr, y_te, settings= {'cv': False, 'param_grid' : {}}):
         knn = KNeighborsClassifier(n_neighbors=clf.best_params_['n_neighbors'])
     
     knn.fit(x_tr, y_tr)
-    
-    return knn, knn.score(x_te, y_te), clf.cv_results_
+    # , clf.cv_results_
+    return knn, knn.score(x_te, y_te)
 
 
