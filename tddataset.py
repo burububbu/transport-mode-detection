@@ -9,14 +9,13 @@ class TDDataset:
     """
     Transport detection dataset with sensor data.
     Fields:
-        - feat
-        - _subfeat = ['mean', 'min, 'max', 'std'] 
+        - feat = ['accellerometer', ...]
         - data
-        - train_dt // preprocessed  by main
-        - test_dt // preprocessed by main  
+        - train_dt = (x_tr, y_tr) 
+        - test_dt = (x_te, x_te) 
     """
     def __init__(self, path, excluded_sensors=[]):
-        # load data, after calc features to exclude
+
         data = pd.read_csv(path).iloc[:, 5:-1]
         
         def to_exclude(w):
@@ -28,13 +27,11 @@ class TDDataset:
         
         # add feat list (useful to retrieve then indexes)
         col_names = self.data.columns.values
-        
         self.feat = [utils.clean_name(col_names[i]) for i in range(0, len(col_names)-1, 4)]
-        self._subfeat = ['mean', 'min', 'max', 'std']
-      
-    def split_train_set(self, test_size = 0.2, prep = False):
-        ''' if prep = True: fill NaN with median, drop duplicated rows, check if dataset is balanced'''
-        x_tr, x_te, y_tr, y_te = train_test_split(self.data.iloc[:, :-1], self.data['target'],  test_size=test_size, random_state=42)
+
+    def split_train_test(self, size = 0.2, prep = False):
+        ''' if prep = True: fill NaN with median, drop duplicated rows'''
+        x_tr, x_te, y_tr, y_te = train_test_split(self.data.iloc[:, :-1], self.data['target'],  test_size=size, random_state=42)
         
         if prep: 
             print('DT ANALYSIS...')
@@ -45,17 +42,12 @@ class TDDataset:
             shape_before = x_tr.shape[0]
             x_tr.insert(x_tr.shape[1],'target', y_tr)
             x_tr.drop_duplicates(keep='first', inplace=True)
+
             print('Number of duplicated rows: {}\n'.format(shape_before - x_tr.shape[0]))
             
             y_tr = x_tr['target']
             x_tr = x_tr.iloc[:, :-1]
             
-            # check balanced training dataset
-            uniq = np.unique(y_tr, return_counts=True) # è bilanciato
-            print('\rIs the dataset balanced?\r')
-            for i in range(0, len(uniq[0])):
-                print("\t{}: {} samples".format(uniq[0][i], uniq[1][i]))
-
         self.set_train_test(x_tr, y_tr, x_te, y_te)
 
     def set_train_test(self, x_tr, y_tr, x_te, y_te):
@@ -63,7 +55,7 @@ class TDDataset:
         self.train_dt = (x_tr, y_tr)
         self.test_dt = (x_te, y_te)    
 
-    def get_train_test_feat(self, sensors = []):
+    def get_train_test_sensors(self, sensors = []):
         """Get train data and test data with specific columns
            Return: tuple (train_x,  test_x, train_y, test_y)
         """
