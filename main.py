@@ -5,17 +5,10 @@ from TDDataset import TDDataset
 import numpy as np
 import pandas as pd
 import utils as utils
-
-PATH = '../dataset/dataset_5secondWindow.csv'
-TO_EXCLUDE = ['light', 'pressure', 'magnetic_field','gravity','proximity']
-
-RF_ESTIMATORS = 200
-KNN_GRID = {'n_neighbors': np.arange(2, 10, 2)}
-SVM_GRID = {'C': np.arange(200, 800, step=200)}
-TEST_SIZE = 0.20
+from cons import PATH, TO_EXCLUDE, TEST_SIZE, RF_ESTIMATORS, SVM_GRID, KNN_GRID, SVM_GRID
 
 
-to_plot = {'nan_sample': 0, 'rf_each_s': 0, 'tot_results': 0}
+to_plot = {'nan_sample': 0, 'rf_each_s': 0, 'tot_results': 1}
 
 
 def main():
@@ -35,9 +28,11 @@ def main():
     
 
     # 3a. select three subset sensor in base of that
-    D1 = ['accelerometer','sound', 'orientation']
+    D1 = ['accelerometer','sound', 'orientation'] # the best
     D2 = ['accelerometer','sound', 'linear_acceleration']
     D3 = ['accelerometer','sound', 'gyroscope']
+
+    
     D4 = ['accelerometer','sound','orientation','linear_acceleration','gyroscope', 'rotation_vector']
     D5 = dt.feat
     
@@ -45,7 +40,7 @@ def main():
     s_set = [D1, D2, D3, D4, D5]
     
     # models = ['lda']
-    models = ['RF', 'SVM', 'KNN', 'lda']
+    models = ['RF', 'SVM', 'KNN']
     # models = ['RF', 'SVM', 'KNN']
 
     final_results = pd.DataFrame(columns=models)
@@ -78,14 +73,14 @@ def main():
             _, score = knn_(x_tr_st, x_te_st, y_tr, y_te, cv = True, param_grid = KNN_GRID)
             scores.append(score)
             
-        if 'lda':
-           print('\t Creating SVM classifier')
-           x_tr_st, x_te_st = pre.standardization(x_tr, x_te)
-           n = len(s)*2
-           print(n)
-           x_tr, x_te = pre.lda_(x_tr_st, x_te_st, y_tr, n)
-           _, score =svm_(x_tr_st, x_te_st, y_tr, y_te, cv = True, param_grid = SVM_GRID)
-           scores.append(score)
+        # if 'lda':
+        #    print('\t Creating SVM classifier')
+        #    x_tr_st, x_te_st = pre.standardization(x_tr, x_te)
+        #    n = len(s)*2
+        #    print(n)
+        #    x_tr, x_te = pre.lda_(x_tr_st, x_te_st, y_tr, n)
+        #    _, score =svm_(x_tr_st, x_te_st, y_tr, y_te, cv = True, param_grid = SVM_GRID)
+        #    scores.append(score)
 
         # NN
         if 'NN' in models:
