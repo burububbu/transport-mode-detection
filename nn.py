@@ -1,148 +1,178 @@
-from torch.nn.modules.activation import ReLU
-from torch.nn.modules.linear import Linear
-from cons import BATCH_SIZE, PATH, TEST_SIZE, TO_EXCLUDE
+from cons import PATH, TEST_SIZE, TO_EXCLUDE
 import preprocessing as pre
 from TDDataset import TDDataset
-import torch
-from torch.utils.data import Dataset, DataLoader, Subset, random_split
-from torch import nn
-import numpy as np
+
 from sklearn.preprocessing import LabelEncoder
+import matplotlib.pyplot as plt
+import itertools
+import numpy as np
 
+import torch
+from torch import nn
+from torch.utils.data import Dataset, DataLoader, Subset
 
-class TMDataSet(Dataset):
-    def __init__(self, x, y): # pass y as label encoded output
+torch.backends.cudnn.benchmark = False
+
+# class that represent dataset
+class TMDataset(Dataset):
+    def __init__(self, x, y):
         self.num_classes = len(np.unique(y))
         self.X = torch.FloatTensor(x)
         self.y = torch.LongTensor(y)
-
+    
     def __len__(self):
         return self.X.shape[0]
 
-    def __getitem__(self, i) :
-        return self.X[i, :], self.y[i]
+    def __getitem__(self, ind):
+        return self.X[ind, :], self.y[ind]
 
-class NeuralNetwork(nn.Module):
-    def __init__(self, input_size, hidden_size, num_classes):
-        super(NeuralNetwork, self).__init__()
-        self.input_size = input_size
+
+class NeuralNet(nn.Module):
+    def __init__(self, in_size, hidden_size, out_size, dropout):
+        super(NeuralNet, self).__init__()
+        
+        self.input_size = in_size
         self.hidden_size = hidden_size
-        self.num_classes = num_classes
+        self.output_size = out_size
 
-        # due layer, uno di input e uno hidden
         self.model = nn.Sequential(
-            nn.Linear(self.input_size, self.hidden_size),
+            nn.Linear(in_size, hidden_size), #h1
             nn.ReLU(),
-            nn.BatchNorm1d(hidden_size),
-            nn.Linear(self.hidden_size, self.hidden_size),
+            nn.Dropout(dropout),
+            nn.Linear(hidden_size, hidden_size), #h2
             nn.ReLU(),
-            nn.BatchNorm1d(hidden_size),
-            nn.Linear(self.hidden_size, self.num_classes),
-         )
+            nn.Dropout(dropout),
+            nn.Linear(hidden_size, out_size), #out
+        )
 
     def forward(self, x):
         out = self.model(x)
         return out
 
-def train_loop(dataloader, model, loss_fn, optimizer, epochs, device):
-    #tell the model that you are training it 
-    model.train()
-    loss_values = []
-    for e in range(epochs):    
-        for data, targets in dataloader:
-            print("{} epoch".format(e))
-            data, targets = data.to(device), targets.to(device)
 
-            # forward pass
+def train_loop(dataloader, model, loss_fn, optimizer, epochs, device):
+    # training mode
+    model.train()
+    
+    n_batch = len(dataloader)
+    loss_mean_epochs = []
+    acc = 0
+    print('Evaluating ...')
+    loss_values = [] # tutte le loss per ogni batch
+    for e in range(epochs):
+        # print('Starting epoch {}'.format(e+1))
+        for data, targets in dataloader:
+            data = data.to(device)
+            targets = targets.to(device)
+
+            # forward pass + loss computation
             pred = model(data)
-            
-            # compute loss
+
             loss = loss_fn(pred, targets)
             loss_values.append(loss)
+            acc = acc + loss.item()
 
-            # backpropagation
+            optimizer.zero_grad()
             loss.backward()
-
             optimizer.step()
-    return loss_values
-        
 
-def test_loop(model, dataloader, device):
-    model.eval() # stato di valutazione
-    score = 0
+        loss_mean_epochs.append(acc/n_batch) 
+    # model, all loss values for ever batch (len(batches) * epoch), mean loss for every epoch
+    return model, loss_values, loss_mean_epochs
 
-    with torch.no_grad(): # vale solo all'interno dello statement
+def test_loop(dataloader, model, loss_fn, device):
+    # evaluation mode
+    model.eval()
+
+    test_loss, correct = 0, 0
+    
+    size = len(dataloader.dataset)
+    with torch.no_grad():
         for data, targets in dataloader:
             data, targets = data.to(device), targets.to(device)
-            pred = model(data) #forward
-            sm = torch.nn.Softmax()
-            print('{}'.format(sm(pred)))
+           
+            pred = model(data)
 
-            correct = (pred.argmax(1) == targets).type(torch.float).sum().item() 
-            score = score + correct
-    score = score/ len(dataloader.dataset)
-    print({'Accuracy: {}'.format(score*100)})  
+            test_loss  = test_loss +  loss_fn(pred, targets).item()
+            correct = correct +  (pred.argmax(1) == targets).type(torch.float).sum().item()
 
- 
-def main():
-    hidden_size = 200
-    # initial hyperparameters settings
+    # media della loss di ogni batch (che forma il dataset)
+    test_loss = test_loss/len(dataloader)
+    # numero predizioni corrette sul totale del dataset
+    correct = correct/size
+    
+    # accuracy, avg loss
+    return correct*100, test_loss
 
-    learning_rate = 1e-3
-    batch_size = 64
-    epochs = 100
 
+if __name__ == '__main__':
+    # setting the device to use
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     print("Using {} device".format(device))
 
-    torch.manual_seed(42)
-    np.random.seed(42)
-    torch.set_deterministic(False)
+    # set here hyperparameters
+    # TODO set hyp (these are examples)
+    # hidden_sizes = [10, 100, 300, 600] # numero neuroni del mio hidden layer
+    # nums_epochs = [100, 500]
+    # batch_sizes = [16, 32, 65]
 
-    # loaded dataset and created 
+    # 10, 100,
+    hidden_sizes = [100, 300, 600] # numero neuroni del mio hidden layer
+    nums_epochs = [200, 500]
+    batch_sizes = [16, 32]
+    learning_rate = [0.001, 0.01]
+    
+    hyperparameters = itertools.product(hidden_sizes, nums_epochs, batch_sizes, learning_rate)
+
+    # load dataset
     dt = TDDataset(PATH, TO_EXCLUDE)
+
     le = LabelEncoder()
     le.fit(dt.data['target'])
     # 1a. preprocessing
     dt.remove_sensor_feat('step_counter')
     dt.split_train_test(TEST_SIZE, prep = True) # fill Nan with median, drop duplicates
 
-    x_tr, x_te, y_tr, y_te = dt.get_train_test_sensors(dt.feat)
+    D1 = ['accelerometer','sound', 'orientation']   
+    D4 = ['accelerometer','sound','orientation','linear_acceleration','gyroscope', 'rotation_vector']
+    x_tr, x_te, y_tr, y_te = dt.get_train_test_sensors(D1)
 
     x_tr_st, x_te_st = pre.standardization(x_tr, x_te)
-    print(x_tr.shape)
-
-    # passare questi 
+    
+    # encording
     y_tr_enc = le.transform(y_tr) 
     y_te_enc = le.transform(y_te)
+    
+    training_data = TMDataset(x_tr_st.to_numpy(), y_tr_enc)
+    test_data = TMDataset(x_te_st.to_numpy(), y_te_enc)
 
-    # quindi alla fine passare
-    # x_tr_st, y_tr_enc
-    # x_te_st, y_te_enc
+    val_loader = DataLoader(test_data, batch_size=1, shuffle=True)
 
-    training_data = TMDataSet(x_tr_st.to_numpy(), y_tr_enc)
-    test_data = TMDataSet(x_te_st.to_numpy(), y_te_enc)
+    # for della cross val
+    for hidden_size, epochs, batch_size, l_rate in hyperparameters:
+        torch.manual_seed(42)
+        np.random.seed(42)
+        torch.set_deterministic(True)
+        print('With hidden-size {}, learning_rate {}, epochs {}, batch size {}'.format(hidden_size, l_rate, epochs, batch_size))
+        
+        train_loader = DataLoader(training_data, batch_size=batch_size, shuffle=True)
 
-    train_dataloader = DataLoader(training_data, batch_size= batch_size) 
-    test_dataloader = DataLoader(test_data, batch_size= batch_size) 
+        model = NeuralNet(training_data.X.shape[1], hidden_size, training_data.num_classes, 0.2)
+        model.to(device)
 
-    #  training_data.X.shape[1] -> numero di features, di colonne
-    model = NeuralNetwork(training_data.X.shape[1], hidden_size, training_data.num_classes).to(device)
+        loss_fn = nn.CrossEntropyLoss()
+        optimizer = torch.optim.Adam(model.parameters(), lr=l_rate)
 
-    print(model)
+        model, loss_values, _ = train_loop(train_loader, model, loss_fn, optimizer, epochs, device)
 
-    # now start the optimization loop = {the train loop, the validation/test loop}
-    # initialize loss function
-    loss_fn = nn.CrossEntropyLoss()
-    # utilize stochastic gradient descend
-    optimizer = torch.optim.SGD(model.parameters(), lr=learning_rate)
+        score, _ = test_loop(val_loader, model, loss_fn, device)
 
-    train_loop(train_dataloader, model, loss_fn, optimizer, epochs, device)
-    test_loop(model, test_dataloader, device)
+        print('With hidden-size {}, learning_rate {}, epochs {}, batch size {}'.format(hidden_size, l_rate, epochs, batch_size)) 
+        print('accuracy on train = {}'.format(test_loop(train_loader, model, loss_fn, device)[0]))
+        print('accuracy on test = {}'.format(score))
 
+    
 
 
 
 
-if __name__ == '__main__':
-    main()

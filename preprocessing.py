@@ -1,6 +1,16 @@
 import numpy as np
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
 
+def min_max_scaling(x_train, x_test):
+    max = np.max(x_train, axis=0)
+    min = np.min(x_train, axis=0)
+
+    x_train_st = (x_train - min) / (max - min)
+    x_test_st = (x_test - min) / (max - min)
+
+    return (x_train_st, x_test_st)
+
+
 def lda_(x_tr, x_te, y_tr, n):
     lda = LinearDiscriminantAnalysis(n_components=2)
     lda.fit(x_tr, y_tr)

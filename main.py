@@ -37,7 +37,7 @@ def main():
     D5 = dt.feat
     
     # 4. training different  classic model on each (cross validation when necessary)
-    s_set = [D1, D2, D3, D4, D5]
+    s_set = [D1, D4, D5]
     
     # models = ['lda']
     models = ['RF', 'SVM', 'KNN']
