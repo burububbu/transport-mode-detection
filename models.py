@@ -10,33 +10,46 @@ def random_forest_(x_tr, x_te, y_tr, y_te, n_estimators= 100):
     rf.fit(x_tr, y_tr)
     return rf, rf.score(x_te, y_te)
 
-def svm_(x_tr, x_te, y_tr, y_te, cv=False, param_grid={}):
-    svc = SVC()
+def svm_(x_tr, x_te, y_tr, y_te, cv=False, param_grid={}, c = 1):
     if cv:
         print('\t\tTuning hyperparameters...')
-        clf = GridSearchCV(svc, param_grid)
+
+        clf = GridSearchCV(SVC(), param_grid)
         clf.fit(x_tr, y_tr)
+
         print('\t\t... best value for C: ', clf.best_params_['C'])
-        svc = SVC(C=clf.best_params_['C'], random_state=42)
-     
+        
+        c_value = clf.best_params_['C']
+    else:
+        c_value = c
+    
+    svc = SVC(C=c_value, random_state=42)
     svc.fit(x_tr, y_tr)
     
     return svc, svc.score(x_te, y_te)
 
 def decision_tree_(x_tr, x_te, y_tr, y_te, depth=4):
+    
     dtc = DecisionTreeClassifier(max_depth=depth, random_state=42)
     dtc.fit(x_tr, y_tr)
+
     return dtc, dtc.score(x_te, y_te)
 
-def knn_(x_tr, x_te, y_tr, y_te, cv=False, param_grid={}):
-    knn = KNeighborsClassifier()
+def knn_(x_tr, x_te, y_tr, y_te, cv=False, param_grid={}, neighbors=5):
+    
     if cv:
         print('\t\tTuning hyperparameters...')
-        clf = GridSearchCV(knn, param_grid)
+
+        clf = GridSearchCV(KNeighborsClassifier(), param_grid)
         clf.fit(x_tr, y_tr)
-        print('\t\t... best value for n_neighbors: ', clf.best_params_['n_neighbors'])
-        knn = KNeighborsClassifier(n_neighbors=clf.best_params_['n_neighbors'])
-    
+        
+        n_value =clf.best_params_['n_neighbors']
+
+        print('\t\t... best value for n_neighbors: ', n_value)
+    else:
+        n_value = neighbors
+
+    knn = KNeighborsClassifier(n_neighbors=n_value)
     knn.fit(x_tr, y_tr)
     
     return knn, knn.score(x_te, y_te)
