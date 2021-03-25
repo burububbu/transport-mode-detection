@@ -1,23 +1,27 @@
+from sklearn.preprocessing import LabelEncoder
 from models import knn_, random_forest_, svm_
-from visualization import plot_multiple_acc, plot_train_results
+import visualization as vis
 import preprocessing as pre
 from TDDataset import TDDataset
-import numpy as np
 import pandas as pd
-import utils as utils
-from cons import PATH, TO_EXCLUDE, TEST_SIZE, RF_ESTIMATORS, SVM_GRID, KNN_GRID, SVM_GRID
+from cons import *
+import nn
 
-
-to_plot = {'nan_sample': 0, 'rf_each_s': 0, 'tot_results': 1}
-
+to_plot = {
+    'nan_sample': 0,
+    'rf_each_s': 0,
+    'loss_values': 0,
+    'tot_results': 1
+    }
 
 def main():
-    global final_results
+    global final_results # remove
+
     # load dataset
     dt = TDDataset(PATH, TO_EXCLUDE)
 
     # 1a. preprocessing
-    pre.check_nan_sample(dt.data, dt.feat, plot= to_plot['nan_sample'])
+    pre.check_nan_sample(dt.data, dt.feat, plot=to_plot['nan_sample'])
     dt.remove_sensor_feat('step_counter')
 
     dt.split_train_test(TEST_SIZE, prep = True) # fill Nan with median, drop duplicates
@@ -25,86 +29,88 @@ def main():
 
     # 2. search more discriminant sensor, returns results
     # s_accuracy = rf_each_sensor(dt, plot = to_plot['rf_each_s'])
+    # print('RF accuracy for each sensor')
+    # print('\n', s_accuracy.sort_values(ascending=False))
     
-
-    # 3a. select three subset sensor in base of that
+    # 3a. select three subset sensor in base of accuracy
     D1 = ['accelerometer','sound', 'orientation'] # the best
     D2 = ['accelerometer','sound', 'linear_acceleration']
     D3 = ['accelerometer','sound', 'gyroscope']
 
-    
     D4 = ['accelerometer','sound','orientation','linear_acceleration','gyroscope', 'rotation_vector']
-    D5 = dt.feat
+    # D5 = all feat
     
-    # 4. training different  classic model on each (cross validation when necessary)
-    s_set = [D1, D4, D5]
+    # 4. training different models on each (cross validation when necessary)
+    s_set = [
+        {'name': 'D1', 'sensors': D1},
+        {'name': 'D4', 'sensors': D4},
+        {'name': 'D5', 'sensors': dt.feat}
+        ]
     
-    # models = ['lda']
-    models = ['RF', 'SVM', 'KNN']
-    # models = ['RF', 'SVM', 'KNN']
+    # models i want to train
+    models_order = ['NN']
+    # models_order = ['RF', 'SVM', 'KNN', 'NN']
 
-    final_results = pd.DataFrame(columns=models)
-    
+    final_results = pd.DataFrame(columns=models_order) # df with final results
+
+    # train different models
     for s in s_set:
-        scores = []
-        name = 'D' + str(s_set.index(s) + 1)
+        scores = [] # score for each model
+        
+        x_tr, x_te, y_tr, y_te = dt.get_train_test_sensors(s['sensors'])
 
-        print('Sensor set: {}: '.format(name))
+        print('Sensor set: {}: '.format(s['name']))
+        for m in models_order:
 
-        x_tr, x_te, y_tr, y_te = dt.get_train_test_sensors(s)
+            print('\t Training {} classifier'.format(m))
             
-        # RANDOM FOREST
-        if 'RF' in models:
-            print('\t Creating RF classifier')
-            _, score = random_forest_(x_tr, x_te, y_tr, y_te, n_estimators = RF_ESTIMATORS)
+            _, score = get_classifier(m, s['name'], x_tr, x_te, y_tr, y_te)
             scores.append(score)
         
-        # SVM
-        if 'SVM' in models:    
-            print('\t Creating SVM classifier')
-            x_tr_st, x_te_st = pre.standardization(x_tr, x_te)
-            _, score =svm_(x_tr_st, x_te_st, y_tr, y_te, cv = True, param_grid = SVM_GRID)
-            scores.append(score)
-        
-        #KNN
-        if 'KNN' in models:
-            print('\t Creating KNN classifier')
-            x_tr_st, x_te_st = pre.standardization(x_tr, x_te)
-            _, score = knn_(x_tr_st, x_te_st, y_tr, y_te, cv = True, param_grid = KNN_GRID)
-            scores.append(score)
-            
-        # if 'lda':
-        #    print('\t Creating SVM classifier')
-        #    x_tr_st, x_te_st = pre.standardization(x_tr, x_te)
-        #    n = len(s)*2
-        #    print(n)
-        #    x_tr, x_te = pre.lda_(x_tr_st, x_te_st, y_tr, n)
-        #    _, score =svm_(x_tr_st, x_te_st, y_tr, y_te, cv = True, param_grid = SVM_GRID)
-        #    scores.append(score)
-
-        # NN
-        if 'NN' in models:
-            pass
-           # _, score =  get_NN(name, s)
-           # scores.append(score)
-
-        final_results = final_results.append(pd.DataFrame([scores], columns = models, index=[name]))
         print('\n')
         
-
-    # 3b. select, for each sensor the best feature and use for a subset of trainig
-    # -
+        final_results = final_results.append(pd.DataFrame([scores], columns = models_order, index=[s['name']]))
 
     # 5. plot results
     if to_plot['tot_results']:
-        plot_train_results(' Final results', final_results, models, utils.s_names(len(s_set)))
-        # plot_train_results(' Final results', final_results, models, utils.s_names(len(s_set)))
-        # plot_train_results(' Final results', final_results, models, utils.s_names(len(s_set)))
-    
+        vis.plot_train_results('Final results', final_results, models_order, [s['name'] for s in s_set])
+        
+# change this, dict si crea solo per modelli che scelgo
+def get_classifier(m, s, x_tr, x_te, y_tr, y_te):
+    to_ret = None
+    if m == 'RF':
+        to_ret = random_forest_(x_tr, x_te, y_tr, y_te, n_estimators = RF_ESTIMATORS)
 
+    elif m == 'SVM':
+        x_st = pre.standardize(x_tr, x_te)
+        to_ret = svm_(*x_st, y_tr, y_te, cv = TO_VAL, param_grid = SVM_GRID, c=C[s])
 
-def get_NN(set, s):
-    pass
+    elif m == 'KNN':
+        x_st = pre.standardize(x_tr, x_te)
+        to_ret= knn_(*x_st, y_tr, y_te, cv = TO_VAL, param_grid = KNN_GRID, neighbors=N_NEIGHBORS[s])
+
+    elif m == 'NN':
+        # encode the label
+        le = LabelEncoder()
+        le.fit(y_tr)
+
+        y_tr_enc = le.transform(y_tr) 
+        y_te_enc = le.transform(y_te)
+
+        # standardizzazione
+        x_st = pre.standardize(x_tr, x_te)
+
+        to_ret = nn.get_nn(
+            *x_st,
+            y_tr_enc, y_te_enc,
+            v = NN_TO_VAL,
+            hs = HIDDEN_SIZE[s],
+            lr = L_RATE[s],
+            epochs = EPOCHS[s],
+            bs = BATCH_SIZE[s],
+            drop= DROPOUT[s] )
+
+    return to_ret
 
 def rf_each_sensor(dt, plot = False):
     ''' With random forest check accuracy for single sensor model'''
@@ -113,52 +119,17 @@ def rf_each_sensor(dt, plot = False):
         data = dt.get_train_test_sensors([name])
         rf, score = random_forest_(*data, n_estimators= RF_ESTIMATORS)
         acc.append(score)
-        rankVar = pd.Series(rf.feature_importances_, index=data[0].columns).sort_values(ascending=False)
-        print(name, '\r', rankVar)
+        
+        # rankVar = pd.Series(rf.feature_importances_, index=data[0].columns).sort_values(ascending=False)
+        # print(name, '\r', rankVar)
     
     sens_acc = pd.Series(acc, dt.feat)
 
     if plot:
-        print(sens_acc.sort_values(ascending = False))
-        plot_multiple_acc('Score for each sensor', sens_acc.index.values, sens_acc.values)
+        vis.plot_multiple_acc('Score for each sensor', sens_acc.index.values, sens_acc.values)
         
     return sens_acc
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 if __name__ == '__main__':
     main()
-    
-    
-    
-    
