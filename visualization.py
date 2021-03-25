@@ -1,8 +1,8 @@
-import matplotlib.pyplot as plt
 import numpy as np
+import matplotlib.pyplot as plt
 
 def plot_multiple_acc(title, x, h):
-    ''' Plot multiple accuracies, on x axis the name of the feat ( or sensor)'''
+    """ A simple bar plot """ # sensor names on x axis
     plt.title(title)  
     plt.bar(x, h)
 
@@ -10,13 +10,17 @@ def plot_multiple_acc(title, x, h):
     plt.xticks(rotation=60)
     plt.show()
     
-#             M1   M2   M3
-#     index   
-#      d1     5    5    6
-#      d2    3     2     6
-#      d3    1     5    3
 
 def plot_train_results(title, df, models, sets):
+    """ Plot grouped bar plot for final training results representation"""
+
+# df structure:
+#             M1  M2  M3
+#     index   
+#      d1     -   -   -  
+#      d2     -   -   -  
+#      d3     -   -   -
+
     data = [df.loc[:, m] for m in models]
 
     x = np.arange(len(sets))
@@ -35,7 +39,7 @@ def plot_train_results(title, df, models, sets):
     plt.xticks(np.arange(n, len(sets), 1), sets)
     ax.legend(loc='lower right')
 
-    def autolabel(rects):
+    def autolabel(rects): # useful to annotate bars with value
         for rect in rects:
             height = rect.get_height()
             ax.annotate('{:.2f}'.format(height),
@@ -51,16 +55,17 @@ def plot_train_results(title, df, models, sets):
 
 
 def plot_nan_values(values, feat):
-    ''' valori da rappresentare, nomi da mettere sull'asse delle y, raggruppamento di quante  bar, legenda'''
-    # multi bar plot to represent quantity of nan
+    """
+        Plot horizontal 4-grouped bar plot to represent number of NaN values for each sensor sub-feature.
+    """
     n = np.arange(0, len(feat), 1.1) # 10 feat
     h = 0.25
 
     # 4 bars group
-    plt.barh(n + 0.05, values[np.arange(0, 40, 4)], color='xkcd:azure', height=h, label='mean') # blue mean
-    plt.barh(n + 0.25, values[np.arange(1, 40, 4)], color='xkcd:light red', height=h, label='min') # red min
-    plt.barh(n + 0.50, values[np.arange(2, 40, 4)], color='xkcd:medium green', height=h, label='max') # green max
-    plt.barh(n + 0.75, values[np.arange(3, 40, 4)], color='xkcd:dull pink', height=h, label='std') # pink std
+    plt.barh(n + 0.05, values[np.arange(0, 40, 4)], color='xkcd:azure', height=h, label='mean')
+    plt.barh(n + 0.25, values[np.arange(1, 40, 4)], color='xkcd:light red', height=h, label='min')
+    plt.barh(n + 0.50, values[np.arange(2, 40, 4)], color='xkcd:medium green', height=h, label='max')
+    plt.barh(n + 0.75, values[np.arange(3, 40, 4)], color='xkcd:dull pink', height=h, label='std')
 
     plt.title('NaN values for each feature')
     plt.xlabel('number of NaN values')
