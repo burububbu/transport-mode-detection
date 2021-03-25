@@ -1,9 +1,7 @@
 import pandas as pd;
-import utils;
-import matplotlib.pyplot as plt;
-import numpy as np
 import preprocessing as pre
 from sklearn.model_selection import train_test_split
+import re
 
 class TDDataset:
     """
@@ -27,7 +25,9 @@ class TDDataset:
         
         # add feat list (useful to retrieve then indexes)
         col_names = self.data.columns.values
-        self.feat = [utils.clean_name(col_names[i]) for i in range(0, len(col_names)-1, 4)]
+
+        clean_name = lambda n:  re.search('(.+?)[#]', n).group(1).replace('android.sensor.', '')
+        self.feat = [clean_name(col_names[i]) for i in range(0, len(col_names)-1, 4)]
 
     def split_train_test(self, size = 0.2, prep = False):
         ''' if prep = True: fill NaN with median, drop duplicated rows'''
