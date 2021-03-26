@@ -77,3 +77,15 @@ def plot_nan_values(values, feat):
     plt.yticks(np.arange(n, 11, 1.1), feat)
     plt.legend()
     plt.show()
+
+def plot_loss(train_loss, test_loss, title):    
+    epochs = len(train_loss)
+
+    plt.plot(epochs, train_loss, label='train loss')  # Plot some data on the axes.
+    plt.plot(epochs, test_loss, label='test loss')  # Plot more data on the axes...
+
+    plt.set_title(title)  # Add a title to the axes.
+    plt.set_xlabel('epochs')  # Add an x-label to the axes.
+    plt.set_ylabel('loss')  # Add a y-label to the axes.
+    
+    plt.legend()  # Add a legend.
