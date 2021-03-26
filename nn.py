@@ -130,8 +130,45 @@ def test_loop(dataloader, model, loss_fn, device):
 
     return correct/len(dataloader.dataset), test_loss
 
+def create_model(training_data, val_loader, hidden_size, l_rate, epochs, batch_size, dropout, device, v = False):
+    """
+        Create and train model with specific parameters.
+        v = True means that the model is created during a search for best hyperparameters.
 
-def get_nn(x_tr, x_te, y_tr, y_te, v=False, hs=10, lr=0.01, epochs=100, bs=64, drop=0.2):
+        Return: [params dict, train accuracy, test accuracy] if v = True,  (model, val score) otherwise
+    
+    """
+    train_loader = DataLoader(training_data, batch_size=batch_size, shuffle=True)       
+
+    model = NeuralNet(training_data.X.shape[1], hidden_size, training_data.num_classes, dropout)
+    model.to(device)
+
+    loss_fn = nn.CrossEntropyLoss()
+    optimizer = torch.optim.SGD(model.parameters(), lr=l_rate)
+
+    # train the network 
+    model, _, means = train_loop(train_loader, model, loss_fn, optimizer, epochs, device)
+    # plt.plot(means)
+
+    val_score, val_avg_loss  = test_loop(val_loader, model, loss_fn, device)
+    train_score, train_avg_loss = test_loop(train_loader, model, loss_fn, device)
+
+    print('With hidden-size {}, learning_rate {}, epochs {}, batch size {}, dropout {}'.format(hidden_size, l_rate, epochs, batch_size, dropout))
+    print('Train set accuracy: {}, Avg loss: {}'.format(train_score, train_avg_loss))
+    print('Val set accuracy: {}, Avg loss: {}'.format(val_score, val_avg_loss))
+
+    # return information to append to the final results in hyperparameters search
+    if v:
+        return [
+            {'hs': hidden_size, 'lr': l_rate, 'ep': epochs, 'b':batch_size, 'dr': dropout},
+            train_score,
+            val_score
+            ]
+    else:
+        return model, val_score
+
+
+def get_nn(x_tr, x_te, y_tr, y_te, v=False, hs=10, lr=0.01, ep=100, bs=64, drop=0.2):
     """
         Train mlp. If v = True then search for best hyperparameters else train with given parameters.
 
@@ -165,83 +202,13 @@ def get_nn(x_tr, x_te, y_tr, y_te, v=False, hs=10, lr=0.01, epochs=100, bs=64, d
 
         print('Starting hyperparameters tuning...')
         for hidden_size, l_rate, epochs, batch_size, dropout in hyperparameters:
+            res = create_model(training_data, val_loader, hidden_size, l_rate, epochs, batch_size, dropout, device, v = True)
             
-            train_loader = DataLoader(training_data, batch_size=batch_size, shuffle=True)
-
-            model = NeuralNet(training_data.X.shape[1], hidden_size, training_data.num_classes, dropout)
-            model.to(device)
-
-            loss_fn = nn.CrossEntropyLoss()
-            optimizer = torch.optim.SGD(model.parameters(), lr=l_rate)
-
-            # train the model 
-            model, _, means = train_loop(train_loader, model, loss_fn, optimizer, epochs, device)
-            # plt.plot(mean)
-
-            score, _ = test_loop(val_loader, model, loss_fn, device)
-            train_acc = test_loop(train_loader, model, loss_fn, device)[0]
-            
-            print('With hidden-size {}, learning_rate {}, epochs {}, batch size {}, dropout {}'.format(hidden_size, l_rate, epochs, batch_size, dropout))
-            print('Train set accuracy: {}'.format(train_acc))
-            print('Val set accuracy: {}'.format(score))
-
             # append information to results dataframe
-            results.append(
-                [[{'hs': hidden_size, 'lr': l_rate, 'ep': epochs, 'b':batch_size, 'dr': dropout},
-                    train_acc,
-                    score]
-                    ])
+            results.append([res])
 
             return results, results['test_acc'].max()
 
     else:  # here there isn't hyperparams tuning
-        print('With hidden-size {}, learning_rate {}, epochs {}, batch size {}'.format(hs, lr, epochs, bs)) 
-        train_loader = DataLoader(training_data, batch_size= bs, shuffle=True)
-
-        model = NeuralNet(training_data.X.shape[1], hs, training_data.num_classes, drop)
-        model.to(device)
-
-        loss_fn = nn.CrossEntropyLoss()
-        optimizer = torch.optim.SGD(model.parameters(), lr=lr)\
-
-        model, _, means = train_loop(train_loader, model, loss_fn, optimizer, epochs, device, valloader=val_loader)
-        score, _ = test_loop(val_loader, model, loss_fn, device)
-        #plt.plot(means)
-        print('Val set accuracy: {}'.format(score))
-        
-        return model, score
-
-
-def temp(training_data, val_loader, hidden_size, l_rate, epochs, batch_size, dropout, device, v = False):
-        train_loader = DataLoader(training_data, batch_size=batch_size, shuffle=True)       
-    
-        model = NeuralNet(training_data.X.shape[1], hidden_size, training_data.num_classes, dropout)
-        model.to(device)
-
-        loss_fn = nn.CrossEntropyLoss()
-        optimizer = torch.optim.SGD(model.parameters(), lr=l_rate)
-
-        # train the model 
-        model, _, means = train_loop(train_loader, model, loss_fn, optimizer, epochs, device)
-        # plt.plot(mean)
-
-        val_score, val_avg_loss  = test_loop(val_loader, model, loss_fn, device)
-        train_score, train_avg_loss = test_loop(train_loader, model, loss_fn, device)[0]
-    
-        print('With hidden-size {}, learning_rate {}, epochs {}, batch size {}, dropout {}'.format(hidden_size, l_rate, epochs, batch_size, dropout))
-        print('Train set accuracy: {}, Avg loss: {}'.format(train_score, train_avg_loss))
-        print('Val set accuracy: {}, Avg loss: {}'.format(val_score, val_avg_loss))
-
-        # return information to append to the final results in hyperparameters search
-        if v:
-            return [
-                {'hs': hidden_size, 'lr': l_rate, 'ep': epochs, 'b':batch_size, 'dr': dropout},
-                train_score,
-                val_score
-                ]
-        
-        
-        
-        # results.append(
-        #     [
-        #         ])
+        model, val_score = create_model(training_data, val_loader, hs, lr, ep, bs, drop, device)
+        return model, val_score
