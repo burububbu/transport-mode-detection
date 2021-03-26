@@ -47,7 +47,7 @@ def get_classifier(m, s, x_tr, x_te, y_tr, y_te):
             v=c.NN_TO_VAL,
             hs=c.HIDDEN_SIZE[s],
             lr=c.L_RATE[s],
-            epochs=c.EPOCHS[s],
+            ep=c.EPOCHS[s],
             bs=c.BATCH_SIZE[s],
             drop=c.DROPOUT[s])
 
