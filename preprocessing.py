@@ -22,7 +22,7 @@ def check_balanced(data):
     """ Print number of samples for each class"""
     uniq = np.unique(data, return_counts=True)
 
-    print('Samples for each class\n')
+    print('Samples for each class:')
     for i in range(0, len(uniq[0])):
         print("\t{}: {} samples".format(uniq[0][i], uniq[1][i]))
     print('\n')
