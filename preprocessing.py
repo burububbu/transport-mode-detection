@@ -28,10 +28,9 @@ def check_balanced(data):
     print('\n')
 
 
-def check_nan_sample(data, feat, plot=False):
+def check_nan_sample(data, feat):
     """ Return (and plot) number of NaN samples for each feature"""
     tot_sample = data.shape[0]
     nan_sample = tot_sample - data.iloc[:, :-1].count()  # series
-    if plot:
-        vis.plot_nan_values(nan_sample, feat)
+    vis.plot_nan_values(nan_sample, feat)
     return nan_sample
