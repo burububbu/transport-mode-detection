@@ -6,6 +6,8 @@ import pandas as pd
 from torch import nn
 from torch.utils.data import Dataset, DataLoader
 
+import visualization as vis
+
 torch.backends.cudnn.benchmark = False
 
 # then the instances will be passed to dataloader 
@@ -31,49 +33,62 @@ class NeuralNet(nn.Module):
         self.hidden_size = hidden_size
         self.output_size = out_size
 
-        # self.model = nn.Sequential(
-        #     nn.Dropout(dropout),
-        #     nn.Linear(in_size, hidden_size), #h1
-        #     nn.ReLU(),
-        #     nn.Dropout(dropout),
-        #     nn.Linear(hidden_size, hidden_size), #h2
-        #     nn.ReLU(),
-        #     nn.Dropout(dropout),
-        #     nn.Linear(hidden_size, hidden_size), #h3
-        #     nn.ReLU(), 
-        #     nn.Linear(hidden_size, out_size), #out
+        self.model = nn.Sequential( # DEEP NN
+               nn.Linear(in_size, hidden_size), #h1
+               nn.ReLU(),
+               nn.BatchNorm1d(hidden_size),
+               
+               nn.Dropout(dropout),
+               nn.Linear(hidden_size, hidden_size), #h2
+               nn.ReLU(),
+               nn.BatchNorm1d(hidden_size),
+               
+               nn.Dropout(dropout),
+               nn.Linear(hidden_size, hidden_size), #h3
+               nn.ReLU(),
+               nn.BatchNorm1d(hidden_size),
+               
+               nn.Dropout(dropout),
+               nn.Linear(hidden_size, hidden_size), #h5
+               nn.ReLU(),
+               nn.BatchNorm1d(hidden_size),
+               
+               nn.Linear(hidden_size, out_size), #out
+           )
         # )
 
-        self.model = nn.Sequential(
-            nn.Dropout(dropout),
-            nn.Linear(in_size, hidden_size),  #h1
-            nn.ReLU(),
-            nn.Dropout(dropout),
-            nn.Linear(hidden_size, hidden_size),  #h2
-            nn.ReLU(),
-            nn.Dropout(dropout),
-            nn.Linear(hidden_size, hidden_size),  #h3
-            nn.ReLU(),
-            nn.Linear(hidden_size, out_size),  #out
-        )
+        # self.model = nn.Sequential(
+        #     nn.Dropout(dropout),
+        #     nn.Linear(in_size, hidden_size),  #h1
+        #     nn.ReLU(),
+        #     nn.Dropout(dropout),
+        #     nn.Linear(hidden_size, hidden_size),  #h2
+        #     nn.ReLU(),
+        #     nn.Dropout(dropout),
+        #     nn.Linear(hidden_size, hidden_size),  #h3
+        #     nn.ReLU(),
+        #     nn.Linear(hidden_size, out_size),  #out
+        # )
 
     def forward(self, x):
         out = self.model(x)
         return out
 
-def train_loop(dataloader, model, loss_fn, optimizer, epochs, device, valloader = None):
+def train_loop(dataloader, model, loss_fn, optimizer, epochs, device, scheduler = None, valloader = None, plot = False):
     """
         For each epoch iterate over dataset searching for optimal results.
         If valloader != None then for each epoch will be tested the model. 
     
-        Return: (model, list of all loss values, list of loss values means for epoch)
+        Return: (model, list of all loss values, avg loss values means for epochs on test set)
     """
     model.train()
 
     n_batch = len(dataloader)
 
-    loss_mean_epochs = []
+    train_avg_loss = []
     loss_values = []
+
+    val_avg_loss = []
 
     print('Evaluating ...')
     for e in range(epochs):
@@ -93,17 +108,26 @@ def train_loop(dataloader, model, loss_fn, optimizer, epochs, device, valloader 
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
+            
+        if scheduler:
+            scheduler.step()
+        print(e+1)
+        train_avg_loss.append(acc/n_batch) 
 
-        loss_mean_epochs.append(acc/n_batch) 
-
-        print(' epoch {}'.format(e+1))
-        print('\tloss: {}'.format(acc/n_batch))
-
+        # print(' epoch {}'.format(e+1))
+        # print('\tloss: {}'.format(acc/n_batch))
+        if (e+1)%50==0:
+            print(' epoch {}'.format(e+1))
+            print('\tloss: {}'.format(acc/n_batch))
+            
         if valloader:
-            print('\t test loss: {}'.format(test_loop(valloader, model, loss_fn, device)[1]))
+            val_avg_loss.append(test_loop(valloader, model, loss_fn, device)[1])
             model.train()
 
-    return model, loss_values, loss_mean_epochs
+    if valloader and plot: # plot only in confronto a valloader
+        vis.plot_loss('miao'+epochs, train_avg_loss, val_avg_loss)
+
+    return model, loss_values, train_avg_loss
 
 
 def test_loop(dataloader, model, loss_fn, device):
@@ -130,7 +154,7 @@ def test_loop(dataloader, model, loss_fn, device):
 
     return correct/len(dataloader.dataset), test_loss
 
-def create_model(training_data, val_loader, hidden_size, l_rate, epochs, batch_size, dropout, device, v = False):
+def create_model(training_data, val_loader, hidden_size, l_rate, epochs, batch_size, dropout, device, v = False, decay = False):
     """
         Create and train model with specific parameters.
         v = True means that the model is created during a search for best hyperparameters.
@@ -145,11 +169,17 @@ def create_model(training_data, val_loader, hidden_size, l_rate, epochs, batch_s
 
     loss_fn = nn.CrossEntropyLoss()
     optimizer = torch.optim.SGD(model.parameters(), lr=l_rate)
+    
+    scheduler = None
+    val = None
 
-    # train the network 
-    model, _, means = train_loop(train_loader, model, loss_fn, optimizer, epochs, device)
-    # plt.plot(means)
-
+    if decay:
+        scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=100, gamma=0.1)
+    if not v:
+        val = val_loader
+    
+    model, _, means = train_loop(train_loader, model, loss_fn, optimizer, epochs, device, scheduler = scheduler, valloader= val, plot = not v) # if it is in validation phase, don't plot  
+    
     val_score, val_avg_loss  = test_loop(val_loader, model, loss_fn, device)
     train_score, train_avg_loss = test_loop(train_loader, model, loss_fn, device)
 
@@ -168,7 +198,7 @@ def create_model(training_data, val_loader, hidden_size, l_rate, epochs, batch_s
         return model, val_score
 
 
-def get_nn(x_tr, x_te, y_tr, y_te, v=False, hs=10, lr=0.01, ep=100, bs=64, drop=0.2):
+def get_nn(x_tr, x_te, y_tr, y_te, v=False, hs=10, lr=0.01, ep=100, bs=64, drop=0.2, decay=False):
     """
         Train mlp. If v = True then search for best hyperparameters else train with given parameters.
 
@@ -210,5 +240,5 @@ def get_nn(x_tr, x_te, y_tr, y_te, v=False, hs=10, lr=0.01, ep=100, bs=64, drop=
             return results, results['test_acc'].max()
 
     else:  # here there isn't hyperparams tuning
-        model, val_score = create_model(training_data, val_loader, hs, lr, ep, bs, drop, device)
+        model, val_score = create_model(training_data, val_loader, hs, lr, ep, bs, drop, device, decay = decay)
         return model, val_score
