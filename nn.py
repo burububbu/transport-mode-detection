@@ -49,30 +49,44 @@ class NeuralNet(nn.Module):
                nn.BatchNorm1d(hidden_size),
                
                nn.Dropout(dropout),
-               nn.Linear(hidden_size, hidden_size), #h5
+               nn.Linear(hidden_size, hidden_size), #h4
                nn.ReLU(),
                nn.BatchNorm1d(hidden_size),
                
                nn.Linear(hidden_size, out_size), #out
            )
-        # )
-
-        # self.model = nn.Sequential(
-        #     nn.Dropout(dropout),
-        #     nn.Linear(in_size, hidden_size),  #h1
-        #     nn.ReLU(),
-        #     nn.Dropout(dropout),
-        #     nn.Linear(hidden_size, hidden_size),  #h2
-        #     nn.ReLU(),
-        #     nn.Dropout(dropout),
-        #     nn.Linear(hidden_size, hidden_size),  #h3
-        #     nn.ReLU(),
-        #     nn.Linear(hidden_size, out_size),  #out
-        # )
 
     def forward(self, x):
         out = self.model(x)
         return out
+
+
+class NeuralNetnondeep(nn.Module):
+    """ Neural network model"""
+    def __init__(self, in_size, hidden_size, out_size, dropout):
+        super(NeuralNet, self).__init__()
+
+        self.input_size = in_size
+        self.hidden_size = hidden_size
+        self.output_size = out_size
+
+        self.model = nn.Sequential(
+            nn.Linear(in_size, hidden_size), #h1
+            nn.ReLU(),
+            
+            nn.Dropout(dropout),
+            nn.Linear(hidden_size, hidden_size), #h2
+            nn.ReLU(),
+            
+            nn.Dropout(dropout),
+            nn.Linear(hidden_size, out_size), #out
+        )
+
+    def forward(self, x):
+        out = self.model(x)
+        return out
+
+
 
 def train_loop(dataloader, model, loss_fn, optimizer, epochs, device, scheduler = None, valloader = None, plot = False):
     """
@@ -90,7 +104,7 @@ def train_loop(dataloader, model, loss_fn, optimizer, epochs, device, scheduler 
 
     val_avg_loss = []
 
-    print('Evaluating ...')
+    print('\t\tEvaluating ...')
     for e in range(epochs):
         acc = 0
         for data, targets in dataloader:
@@ -111,21 +125,20 @@ def train_loop(dataloader, model, loss_fn, optimizer, epochs, device, scheduler 
             
         if scheduler:
             scheduler.step()
-        print(e+1)
         train_avg_loss.append(acc/n_batch) 
 
         # print(' epoch {}'.format(e+1))
         # print('\tloss: {}'.format(acc/n_batch))
         if (e+1)%50==0:
-            print(' epoch {}'.format(e+1))
-            print('\tloss: {}'.format(acc/n_batch))
+            print('\t\tepoch {}'.format(e+1))
+            print('\t\t\tloss: {}'.format(acc/n_batch))
             
         if valloader:
             val_avg_loss.append(test_loop(valloader, model, loss_fn, device)[1])
             model.train()
 
     if valloader and plot: # plot only in confronto a valloader
-        vis.plot_loss('miao'+epochs, train_avg_loss, val_avg_loss)
+        vis.plot_loss('miao'+ str(epochs), train_avg_loss, val_avg_loss)
 
     return model, loss_values, train_avg_loss
 
@@ -183,9 +196,9 @@ def create_model(training_data, val_loader, hidden_size, l_rate, epochs, batch_s
     val_score, val_avg_loss  = test_loop(val_loader, model, loss_fn, device)
     train_score, train_avg_loss = test_loop(train_loader, model, loss_fn, device)
 
-    print('With hidden-size {}, learning_rate {}, epochs {}, batch size {}, dropout {}'.format(hidden_size, l_rate, epochs, batch_size, dropout))
-    print('Train set accuracy: {}, Avg loss: {}'.format(train_score, train_avg_loss))
-    print('Val set accuracy: {}, Avg loss: {}'.format(val_score, val_avg_loss))
+    print('\t\tWith hidden-size {}, learning_rate {}, epochs {}, batch size {}, dropout {}'.format(hidden_size, l_rate, epochs, batch_size, dropout))
+    print('\t\tTrain set accuracy: {}, Avg loss: {}'.format(train_score, train_avg_loss))
+    print('\t\tVal set accuracy: {}, Avg loss: {}'.format(val_score, val_avg_loss))
 
     # return information to append to the final results in hyperparameters search
     if v:
@@ -206,7 +219,7 @@ def get_nn(x_tr, x_te, y_tr, y_te, v=False, hs=10, lr=0.01, ep=100, bs=64, drop=
     """
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    print("Using {} device".format(device))
+    print("\t\tUsing {} device".format(device))
 
     torch.manual_seed(42)
     np.random.seed(42)
@@ -230,7 +243,7 @@ def get_nn(x_tr, x_te, y_tr, y_te, v=False, hs=10, lr=0.01, ep=100, bs=64, drop=
 
         hyperparameters = itertools.product(hidden_sizes, nums_epochs, batch_sizes, learning_rate, dropout)
 
-        print('Starting hyperparameters tuning...')
+        print('\t\tStarting hyperparameters tuning...')
         for hidden_size, l_rate, epochs, batch_size, dropout in hyperparameters:
             res = create_model(training_data, val_loader, hidden_size, l_rate, epochs, batch_size, dropout, device, v = True)
             
