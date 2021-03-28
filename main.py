@@ -49,12 +49,13 @@ def get_classifier(m, s, x_tr, x_te, y_tr, y_te):
             lr=c.L_RATE[s],
             ep=c.EPOCHS[s],
             bs=c.BATCH_SIZE[s],
-            drop=c.DROPOUT[s])
+            drop=c.DROPOUT[s],
+            decay=c.DECAY[s])
 
     return to_ret
 
 
-def rf_each_sensor(dt, plot=False):
+def rf_each_sensor(dt):
     ''' Get accuracy for each sensor (4 features) with random forest model.'''
     acc = []
     for name in dt.feat:
@@ -67,34 +68,26 @@ def rf_each_sensor(dt, plot=False):
 
     sens_acc = pd.Series(acc, dt.feat)
 
-    if plot:
-        vis.plot_multiple_acc('Score for each sensor', sens_acc.index.values, sens_acc.values)
+    vis.plot_multiple_acc('Score for each sensor', sens_acc.index.values, sens_acc.values)
 
     return sens_acc
 
 
 if __name__ == '__main__':
     # start analysis process
-    to_plot = {
-        'nan_sample': 0,
-        'rf_each_s': 0,
-        'loss_values': 0,
-        'tot_results': 1
-    }
-
     dt = TDDataset(c.PATH, c.TO_EXCLUDE)
 
     # preprocessing phase
-    pre.check_nan_sample(dt.data, dt.feat, plot=to_plot['nan_sample'])
+    pre.check_nan_sample(dt.data, dt.feat)
     dt.remove_sensor_feat('step_counter')
 
     dt.split_train_test(c.TEST_SIZE, prep=True)  # fill Nan with median, drop duplicates
     pre.check_balanced(dt.train_dt[1])
 
     # search for more discriminant sensor with random forest
-    s_accuracy = rf_each_sensor(dt, plot = to_plot['rf_each_s'])
-    print('RF accuracy for each sensor')
-    print('\n', s_accuracy.sort_values(ascending=False))
+    # s_accuracy = rf_each_sensor(dt)
+    # print('RF accuracy for each sensor')
+    # print('\n', s_accuracy.sort_values(ascending=False))
 
     # select three subset sensor based on RF accuracy
     # D1 = ['accelerometer', 'sound', 'orientation']  # the best
@@ -115,8 +108,8 @@ if __name__ == '__main__':
             ]
 
     # train different models on each set (with cross validation if necessary)
-    models_order = ['NN'] 
-    # models_order = ['RF', 'SVM', 'KNN', 'NN']  # models to train
+    # models_order = ['NN'] 
+    models_order = ['RF', 'SVM', 'KNN', 'NN']  # models to train
 
     final_results = pd.DataFrame(columns=models_order)
 
@@ -134,5 +127,4 @@ if __name__ == '__main__':
         final_results = final_results.append(pd.DataFrame([scores], columns=models_order, index=[s['name']]))
 
     # plot results
-    if to_plot['tot_results']:
-        vis.plot_train_results('Final results', final_results, models_order, [s['name'] for s in s_set])
+    vis.plot_train_results('Final results', final_results, models_order, [s['name'] for s in s_set])
