@@ -2,6 +2,7 @@ import os
 
 import numpy as np
 import matplotlib.pyplot as plt
+import torch
 
 from cons import PLOT_PATH
 
@@ -108,5 +109,5 @@ def save_fig(fname):
     if not os.path.exists(PLOT_PATH):
         os.makedirs(PLOT_PATH)
 
-    plt.savefig(PLOT_PATH + fname +'.pdf')
+    plt.savefig(PLOT_PATH + fname + '.svg')
     plt.clf()

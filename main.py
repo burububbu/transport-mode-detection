@@ -44,13 +44,13 @@ def get_classifier(m, s, x_tr, x_te, y_tr, y_te):
         to_ret = nn.get_nn(
             *x_st,
             y_tr_enc, y_te_enc,
-            v=c.NN_TO_VAL,
-            hs=c.HIDDEN_SIZE[s],
-            lr=c.L_RATE[s],
-            ep=c.EPOCHS[s],
-            bs=c.BATCH_SIZE[s],
-            drop=c.DROPOUT[s],
-            decay=c.DECAY[s])
+            hidden_s= c.HIDDEN_SIZE[s],
+            epochs= c.EPOCHS[s],
+            batch_s=c.BATCH_SIZE[s],
+            dropout=c.DROPOUT[s],
+            v= c.NN_TO_VAL,
+            title=s
+)
 
     return to_ret
 
@@ -108,7 +108,6 @@ if __name__ == '__main__':
             ]
 
     # train different models on each set (with cross validation if necessary)
-    # models_order = ['NN'] 
     models_order = ['RF', 'SVM', 'KNN', 'NN']  # models to train
 
     final_results = pd.DataFrame(columns=models_order)
