@@ -6,7 +6,10 @@ import matplotlib.pyplot as plt
 from cons import PLOT_PATH
 
 def plot_multiple_acc(title, x, h):
-    """ A simple bar plot """ # sensor names on x axis
+    """ A simple bar plot.
+    
+        The result is stored in a file located in the directory PLOT_PATH.
+    """ # sensor names on x axis
     plt.title(title)  
     plt.bar(x, h)
     plt.yticks(np.arange(0, 1.10, step=0.1))
@@ -18,7 +21,11 @@ def plot_multiple_acc(title, x, h):
     
 
 def plot_train_results(title, df, models, sets):
-    """ Plot grouped bar plot for final training results representation"""
+    """
+        Plot grouped bar plot for final training results representation.
+    
+        The result is stored in a file located in the directory PLOT_PATH.
+    """
 
 # df structure:
 #             M1  M2  M3
@@ -64,7 +71,9 @@ def plot_train_results(title, df, models, sets):
 
 def plot_nan_values(values, feat):
     """
-        Plot horizontal 4-grouped bar plot to represent number of NaN values for each sensor sub-feature.
+        Plot horizontal 4-grouped bar plot to represent number of NaN values for each sensor sub-feature. 
+    
+        The result is stored in a file located in the directory PLOT_PATH.
     """
     n = np.arange(0, len(feat), 1.1) # 10 feat
     h = 0.25
@@ -89,22 +98,30 @@ def plot_nan_values(values, feat):
     
     save_fig('nan values')
 
-def plot_loss(title, train_loss, test_loss):
+def plot_loss(fname, title, train_loss, test_loss):
+    """ 
+        Plot lines that represent loss on training set and test set.
+    
+        The result is stored in a file located in the directory PLOT_PATH.
+    """
+
     epochs = range(len(train_loss))
 
-    plt.plot(epochs, train_loss, label='train loss')  # Plot some data on the axes.
-    plt.plot(epochs, test_loss, label='test loss')  # Plot more data on the axes...
+    plt.plot(epochs, train_loss, label='train loss')
+    plt.plot(epochs, test_loss, label='test loss')
 
-    plt.title(title)  # Add a title to the axes.
-    plt.xlabel('epochs')  # Add an x-label to the axes.
-    plt.ylabel('loss')  # Add a y-label to the axes.
+    plt.title(title) 
+    plt.xlabel('epochs')
+    plt.ylabel('loss')
     
-    plt.legend()  # Add a legend.
+    plt.legend()
 
     plt.tight_layout()
-    save_fig(title)
+    save_fig(fname)
     
+
 def save_fig(fname):
+    """ Save plot in a specific directory"""
     if not os.path.exists(PLOT_PATH):
         os.makedirs(PLOT_PATH)
 

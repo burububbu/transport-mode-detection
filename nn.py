@@ -139,13 +139,13 @@ def get_nn(x_tr, x_te, y_tr, y_te, hidden_s=20, epochs=100, batch_s=68, dropout=
         res = (None, 0)
         for hidden_size, num_epochs, batch_size, dropout_size in hyperparameters:
 
-            print('\t\tWith hidden-size {}, epochs {}, batch size {}, dropout {}'.format(hidden_size, num_epochs, batch_size, dropout))
+            print('\t\t\tWith hidden-size {}, epochs {}, batch size {}, dropout {}'.format(hidden_size, num_epochs, batch_size, dropout))
             new_res = _create_model(training_data, test_data, hidden_size, num_epochs, batch_size, dropout_size, device, title)
             
             if new_res[1] > res[1]:  # if the new model score is grater than the last, keep the new model 
                 res = new_res
             
-            return res
+        return res
     else: # use the given parameters
         model, score= _create_model(training_data, test_data, hidden_s, epochs, batch_s, dropout, device, title)
         return model, score
@@ -165,7 +165,7 @@ def _create_model(training_data, test_data, hidden_s, epochs, batch_s, dropout, 
 
     loss_fn = nn.CrossEntropyLoss()
     optimizer = torch.optim.SGD(model.parameters(), lr=0.1)
-    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=100, gamma=0.1, verbose = True)
+    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=100, gamma=0.1)
 
     train_losses = [] # list of avg loss for each epoch on train set
     val_losses = [] # list of avg loss for each epoch on val set
@@ -182,14 +182,17 @@ def _create_model(training_data, test_data, hidden_s, epochs, batch_s, dropout, 
         if (e+1)%50 == 0:
             print('\t\tepoch {}'.format(e+1))
             print('\t\t\tloss: {}'.format(train_loss))
-        
-    vis.plot_loss(title, train_losses, val_losses)
+    
+    new_title = title + 'with hs={}, bs={}, d={}'.format(hidden_s, batch_s, dropout)
+    fname = title+ '_{}_{}_{}_{}'.format(hidden_s, epochs, batch_s, dropout)
+
+    vis.plot_loss(fname, new_title, train_losses, val_losses)
 
     # we have the trained model, now compute the accuracy
     train_score, _ = test_loop(train_loader, model, loss_fn, device)
     test_score, _ = test_loop(val_loader, model, loss_fn, device)
 
-    print('train set accuracy:{}, test set accuracy:{}'.format(train_score, test_score))
+    print('\t\t\ttrain set score:{}, test set score:{}'.format(train_score, test_score))
     
     return model, test_score
 

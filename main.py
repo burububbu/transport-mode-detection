@@ -5,13 +5,14 @@ from sklearn.preprocessing import LabelEncoder
 import nn
 import cons as c
 import models as model
+
 import visualization as vis
 import preprocessing as pre
 from TDDataset import TDDataset
 
 def get_classifier(m, s, x_tr, x_te, y_tr, y_te):
     """ Train a classifier.
-        Cross-validate if const TO_VAL=True and/or NN_TO_VAL=False.
+        Cross-validate if const TO_VAL=True and/or NN_TO_VAL=True.
 
         Params:
             - m: {‘RF’, ‘SVM’, ‘KNN’, ‘NN’}
@@ -85,25 +86,26 @@ if __name__ == '__main__':
     pre.check_balanced(dt.train_dt[1])
 
     # search for more discriminant sensor with random forest
-    # s_accuracy = rf_each_sensor(dt)
-    # print('RF accuracy for each sensor')
-    # print('\n', s_accuracy.sort_values(ascending=False))
+    s_accuracy = rf_each_sensor(dt)
+    print('RF accuracy for each sensor')
+    print(s_accuracy.sort_values(ascending=False))
+    print()
 
     # select three subset sensor based on RF accuracy
-    # D1 = ['accelerometer', 'sound', 'orientation']  # the best
-    # D2 = ['accelerometer', 'sound', 'linear_acceleration']
-    # D3 = ['accelerometer', 'sound', 'gyroscope']
+    # D1 = ['accelerometer', 'sound', 'orientation'] # the best
+    # D1_1 = ['accelerometer', 'sound', 'linear_acceleration']
+    # D1_2 = ['accelerometer', 'sound', 'gyroscope']
 
     s_set = [
             {'name': 'D1',
             'sensors': ['accelerometer', 'sound', 'orientation']
             },
             
-            {'name': 'D4',
+            {'name': 'D2',
             'sensors': ['accelerometer', 'sound', 'orientation', 'linear_acceleration', 'gyroscope', 'rotation_vector']
             },
             
-            {'name': 'D5',
+            {'name': 'D3',
             'sensors': dt.feat}
             ]
 
