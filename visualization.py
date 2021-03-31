@@ -125,5 +125,5 @@ def save_fig(fname):
     if not os.path.exists(PLOT_PATH):
         os.makedirs(PLOT_PATH)
 
-    plt.savefig(PLOT_PATH + fname + '.svg')
+    plt.savefig(PLOT_PATH + fname + '.jpg')
     plt.clf()

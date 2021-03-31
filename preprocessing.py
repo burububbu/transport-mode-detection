@@ -3,6 +3,7 @@ import numpy as np
 import visualization as vis
 
 def standardize(x_train, x_test):
+    """ Apply standardization on train and tets data"""
     mean = np.mean(x_train, axis=0)
     std = np.std(x_train, axis=0)
 

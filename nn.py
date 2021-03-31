@@ -11,7 +11,7 @@ torch.backends.cudnn.benchmark = False
 
 # class that represent dataset
 class NNDataset(Dataset):
-    """ Neural network model"""
+    """ Neural network dataset"""
     def __init__(self, x, y):
         self.num_classes = len(np.unique(y))
         self.X = torch.FloatTensor(x)
@@ -104,7 +104,6 @@ def _test_loop(dataloader, model, loss_fn, device):
 
     model.train()
 
-    # numero di valori per cui ci ha preso / il tot di valori
     return correct/len(dataloader.dataset), test_loss
 
 
