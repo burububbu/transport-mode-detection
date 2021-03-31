@@ -4,7 +4,7 @@ from sklearn.preprocessing import LabelEncoder
 
 import nn
 import cons as c
-import models as model
+import classifiers
 
 import visualization as vis
 import preprocessing as pre
@@ -23,15 +23,15 @@ def get_classifier(m, s, x_tr, x_te, y_tr, y_te):
     """
     to_ret = None
     if m == 'RF':
-        to_ret = model.random_forest_(x_tr, x_te, y_tr, y_te, n_estimators=c.RF_ESTIMATORS)
+        to_ret = classifiers.random_forest_(x_tr, x_te, y_tr, y_te, n_estimators=c.RF_ESTIMATORS)
 
     elif m == 'SVM':
         x_st = pre.standardize(x_tr, x_te)
-        to_ret = model.svm_(*x_st, y_tr, y_te, cv=c.TO_VAL, param_grid=c.SVM_GRID, c= c.C[s])
+        to_ret = classifiers.svm_(*x_st, y_tr, y_te, cv=c.TO_VAL, param_grid=c.SVM_GRID, c= c.C[s])
 
     elif m == 'KNN':
         x_st = pre.standardize(x_tr, x_te)
-        to_ret = model.knn_(*x_st, y_tr, y_te, cv=c.TO_VAL, param_grid=c.KNN_GRID, neighbors=c.N_NEIGHBORS[s])
+        to_ret = classifiers.knn_(*x_st, y_tr, y_te, cv=c.TO_VAL, param_grid=c.KNN_GRID, neighbors=c.N_NEIGHBORS[s])
 
     elif m == 'NN':
         le = LabelEncoder()
@@ -57,11 +57,11 @@ def get_classifier(m, s, x_tr, x_te, y_tr, y_te):
 
 
 def rf_each_sensor(dt):
-    ''' Get accuracy for each sensor (4 features) with random forest model.'''
+    ''' Get accuracy for each sensor (4 features) with random forest classifier.'''
     acc = []
     for name in dt.feat:
         data = dt.get_train_test_sensors([name])
-        _, score = model.random_forest_(*data, n_estimators=c.RF_ESTIMATORS)
+        _, score = classifiers.random_forest_(*data, n_estimators=c.RF_ESTIMATORS)
         acc.append(score)
 
         # rankVar = pd.Series(rf.feature_importances_, index=data[0].columns).sort_values(ascending=False)

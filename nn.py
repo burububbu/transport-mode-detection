@@ -61,11 +61,11 @@ class NeuralNet(nn.Module):
         return out
 
 # def train loop
-def train_loop(dataloader, model, loss_fn, optimizer, device):
+def _train_loop(dataloader, model, loss_fn, optimizer, device):
     model.train()
 
-    loss_values = [] # all loss for each minibatch
-    avg_loss = 0 # last loss value
+    loss_values = [] # all losses for each minibatch
+    avg_loss = 0 # avg loss 
 
     for data, targets in dataloader:
         data = data.to(device)
@@ -82,11 +82,11 @@ def train_loop(dataloader, model, loss_fn, optimizer, device):
         loss.backward()
         optimizer.step()
 
-    # model, all loss values for minibatch, last loss value
+    # model, all loss values for minibatch, avg loss
     return model, loss_values, avg_loss/len(dataloader)
 
 # def test loop
-def test_loop(dataloader, model, loss_fn, device):
+def _test_loop(dataloader, model, loss_fn, device):
     model.eval()
 
     test_loss, correct = 0, 0 
@@ -171,8 +171,8 @@ def _create_model(training_data, test_data, hidden_s, epochs, batch_s, dropout, 
     val_losses = [] # list of avg loss for each epoch on val set
 
     for e in np.arange(epochs):
-        model, _, train_loss = train_loop(train_loader, model, loss_fn, optimizer, device)
-        _, val_loss = test_loop(val_loader, model, loss_fn, device)
+        model, _, train_loss = _train_loop(train_loader, model, loss_fn, optimizer, device)
+        _, val_loss = _test_loop(val_loader, model, loss_fn, device)
 
         train_losses.append(train_loss)
         val_losses.append(val_loss)
@@ -189,8 +189,8 @@ def _create_model(training_data, test_data, hidden_s, epochs, batch_s, dropout, 
     vis.plot_loss(fname, new_title, train_losses, val_losses)
 
     # we have the trained model, now compute the accuracy
-    train_score, _ = test_loop(train_loader, model, loss_fn, device)
-    test_score, _ = test_loop(val_loader, model, loss_fn, device)
+    train_score, _ = _test_loop(train_loader, model, loss_fn, device)
+    test_score, _ = _test_loop(val_loader, model, loss_fn, device)
 
     print('\t\t\ttrain set score:{}, test set score:{}'.format(train_score, test_score))
     
