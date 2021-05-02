@@ -1,6 +1,6 @@
 # Transport mode detection
 
-This project aims to analyze and study the application of some of thmachine learning techniques just to solve this detection problem.
+This project aims to analyze and study the application of some of machine learning techniques just to solve this detection problem.
 
 In this particular case, the study relies on a very powerful data source, the smartphone sensors.
 
